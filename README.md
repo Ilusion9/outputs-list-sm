@@ -4,13 +4,13 @@ Inspired from: https://github.com/kidfearless/output-info-plugin/
 
 It's more optimized, arraylist's are not used in my plugin. I got some crashes with that plugin, so I made this.
 
-# Usage
+# Functions
 ```csharp
 /**
  * Returns an output from an entity outputs list
  *
  * @param entity            Entity index.
- * @param index             Index in the list.
+ * @param index             Index in the output list.
  * @param output            Buffer to copy the output name.
  * @param outputlen         Maximum size of the output buffer.
  * @param target            Buffer to copy the target name.
@@ -32,4 +32,25 @@ bool GetEntityOutput(int entity, int index, char[] output, int outputlen, char[]
  * @return                  The entity outputs count.
  */
 int GetEntityOutputsCount(int entity);
+```
+
+# Examples
+```csharp
+bool inputOnce;
+char outputName[256];
+char targetName[256];
+char inputName[256];
+char params[256];
+float inputDelay;
+  
+for (int i = 0; i < GetEntityOutputsCount(entity); i++)
+{		
+	// get output
+	if (!GetEntityOutput(entity, i, outputName, sizeof(outputName), targetName, sizeof(targetName), inputName, sizeof(inputName), params, sizeof(params), inputDelay, inputOnce))
+	{
+		continue;
+	}
+
+	// do something with this output
+}
 ```
