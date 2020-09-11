@@ -6,7 +6,7 @@ It's more optimized, arraylist's are not used in my plugin. I got some crashes w
 
 # Usage
 ```
-/**
+/**csharp
  * Returns an output from an entity outputs list
  *
  * @param entity            Entity index.
@@ -15,7 +15,7 @@ It's more optimized, arraylist's are not used in my plugin. I got some crashes w
  * @param outputlen         Maximum size of the output buffer.
  * @param target            Buffer to copy the target name.
  * @param targetlen         Maximum size of the target buffer.
- * @param target            Buffer to copy the input received.
+ * @param input             Buffer to copy the input received.
  * @param inputlen          Maximum size of the input buffer.
  * @param param             Buffer to copy the parameters received.
  * @param paramlen          Maximum size of the parameters buffer.
