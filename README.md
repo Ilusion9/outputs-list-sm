@@ -1,8 +1,7 @@
 # Description
 Get entities outputs.
-Inspired from: https://github.com/kidfearless/output-info-plugin/
 
-It's more optimized, arraylist's are not used in my plugin. I got some crashes with that plugin, so I made this.
+Credits to: https://github.com/kidfearless/output-info-plugin/
 
 # Functions
 ```csharp
