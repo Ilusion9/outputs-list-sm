@@ -59,7 +59,7 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 	}
 	
 	int index = GetNativeCell(2);
-	if (index < 0 || index > info.numOutputs) // invalid index received
+	if (index < 0 || index >= info.numOutputs) // invalid index received
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
 	}
