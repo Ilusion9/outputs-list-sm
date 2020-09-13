@@ -3,6 +3,9 @@ Get entities outputs.
 
 Credits to: https://github.com/kidfearless/output-info-plugin/
 
+# Alliedmods
+https://forums.alliedmods.net/showthread.php?t=327344
+
 # Functions
 ```csharp
 /**
