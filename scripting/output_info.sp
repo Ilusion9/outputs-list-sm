@@ -79,7 +79,7 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 	SetNativeString(5, splitParameters[Target], GetNativeCell(6));
 	SetNativeString(7, splitParameters[Input], GetNativeCell(8));
 	SetNativeString(9, splitParameters[Parameters], GetNativeCell(10));
-	SetNativeCellRef(11, StringToFloat(splitParameters[Parameters]));
+	SetNativeCellRef(11, StringToFloat(splitParameters[Delay]));
 	SetNativeCellRef(12, StringToInt(splitParameters[Once]) > 0);
 	
 	return true;
