@@ -26,7 +26,7 @@ enum
 enum struct EntityInfo
 {
 	int numOutputs;
-	char outputsList[1024];
+	char outputsList[2048];
 }
 
 StringMap g_Map_Outputs;
