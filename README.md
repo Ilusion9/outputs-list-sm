@@ -64,6 +64,7 @@ native int GetEntityOutputsCount(int entity);
 ```
 
 # Examples
+## Get all outputs from entity index
 ```csharp
 bool inputOnce;
 char outputName[256];
@@ -76,6 +77,27 @@ for (int i = 0; i < GetEntityOutputsCount(entity); i++)
 {		
 	// get output
 	if (!GetEntityOutput(entity, i, outputName, sizeof(outputName), targetName, sizeof(targetName), inputName, sizeof(inputName), params, sizeof(params), inputDelay, inputOnce))
+	{
+		continue;
+	}
+
+	// do something with this output
+}
+```
+
+## Get all outputs from entity hammer id
+```csharp
+bool inputOnce;
+char outputName[256];
+char targetName[256];
+char inputName[256];
+char params[256];
+float inputDelay;
+  
+for (int i = 0; i < GetEntityOutputsCount(hammerId); i++)
+{		
+	// get output
+	if (!GetEntityOutput(hammerId, i, outputName, sizeof(outputName), targetName, sizeof(targetName), inputName, sizeof(inputName), params, sizeof(params), inputDelay, inputOnce))
 	{
 		continue;
 	}
