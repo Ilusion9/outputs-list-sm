@@ -26,46 +26,40 @@ enum
 enum struct EntityInfo
 {
 	int numOutputs;
-	char outputsList[2048];
+	char outputsList[4096];
 }
 
 StringMap g_Map_Outputs;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	CreateNative("GetHammerOutput", Native_GetHammerOutput);
 	CreateNative("GetEntityOutput", Native_GetEntityOutput);
+	CreateNative("GetHammerOutputsCount", Native_GetHammerOutputsCount);
 	CreateNative("GetEntityOutputsCount", Native_GetEntityOutputsCount);
 
 	RegPluginLibrary("output_info");
 }
 
-public int Native_GetEntityOutput(Handle plugin, int numParams)
+public int Native_GetHammerOutput(Handle plugin, int numParams)
 {
-	int entity = GetNativeCell(1);
-	if (!IsValidEntity(entity))
-	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
-	}
-	
-	EntityInfo info;
-	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
-	
 	char hammerBuffer[128];
-	Format(hammerBuffer, sizeof(hammerBuffer), "%d", hammerId);
+	Format(hammerBuffer, sizeof(hammerBuffer), "%d", GetNativeCell(1));
 	
-	if (!g_Map_Outputs.GetArray(hammerBuffer, info, sizeof(EntityInfo))) // this entity has no outputs
+	EntityInfo entInfo;
+	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo))) // this entity has no outputs
 	{
 		return false;
 	}
 	
 	int index = GetNativeCell(2);
-	if (index < 0 || index >= info.numOutputs) // invalid index received
+	if (index < 0 || index >= entInfo.numOutputs) // invalid index received
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
 	}
 	
-	char[][] splitOutputs = new char[info.numOutputs][256];
-	ExplodeString(info.outputsList, "\n", splitOutputs, info.numOutputs, 256);
+	char[][] splitOutputs = new char[entInfo.numOutputs][256];
+	ExplodeString(entInfo.outputsList, "\n", splitOutputs, entInfo.numOutputs, 256);
 	
 	char splitParameters[6][128];
 	ExplodeString(splitOutputs[index], "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
@@ -85,6 +79,65 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 	return true;
 }
 
+public int Native_GetEntityOutput(Handle plugin, int numParams)
+{
+	int entity = GetNativeCell(1);
+	if (!IsValidEntity(entity))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
+	}
+		
+	char hammerBuffer[128];
+	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
+	Format(hammerBuffer, sizeof(hammerBuffer), "%d", hammerId);
+	
+	EntityInfo entInfo;
+	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo))) // this entity has no outputs
+	{
+		return false;
+	}
+	
+	int index = GetNativeCell(2);
+	if (index < 0 || index >= entInfo.numOutputs) // invalid index received
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
+	}
+	
+	char[][] splitOutputs = new char[entInfo.numOutputs][256];
+	ExplodeString(entInfo.outputsList, "\n", splitOutputs, entInfo.numOutputs, 256);
+	
+	char splitParameters[6][128];
+	ExplodeString(splitOutputs[index], "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
+	
+	if (!splitParameters[Target][0]) // no target
+	{
+		return false;
+	}
+	
+	SetNativeString(3, splitParameters[Output], GetNativeCell(4));
+	SetNativeString(5, splitParameters[Target], GetNativeCell(6));
+	SetNativeString(7, splitParameters[Input], GetNativeCell(8));
+	SetNativeString(9, splitParameters[Parameters], GetNativeCell(10));
+	SetNativeCellRef(11, StringToFloat(splitParameters[Delay]));
+	SetNativeCellRef(12, StringToInt(splitParameters[Once]) > 0);
+	
+	return true;
+}
+
+public int Native_GetHammerOutputsCount(Handle plugin, int numParams)
+{
+	char hammerBuffer[128];
+	Format(hammerBuffer, sizeof(hammerBuffer), "%d", GetNativeCell(1));
+	
+	EntityInfo entInfo;
+	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo)))
+	{
+		return 0;
+	}
+	
+	return entInfo.numOutputs;
+}
+
 public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 {
 	int entity = GetNativeCell(1);
@@ -92,19 +145,18 @@ public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
-	
-	EntityInfo info;
-	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
-	
+		
 	char hammerBuffer[128];
+	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
 	Format(hammerBuffer, sizeof(hammerBuffer), "%d", hammerId);
 	
-	if (!g_Map_Outputs.GetArray(hammerBuffer, info, sizeof(EntityInfo)))
+	EntityInfo entInfo;
+	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo)))
 	{
 		return 0;
 	}
 	
-	return info.numOutputs;
+	return entInfo.numOutputs;
 }
 
 public void OnPluginStart()
@@ -142,10 +194,10 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 		}
 		
 		// get outputs
-		char output[256];
-		char parameters[256];
-		char outputsList[256];
-		EntityInfo info;
+		char output[512];
+		char parameters[512];
+		char outputsList[sizeof(EntityInfo::outputsList)];
+		EntityInfo entInfo;
 		
 		Regex outputMatch = new Regex("(\"On\\w*\") (\"[^\"]+\")");
 		for (int i = pos + end + 1; outputMatch.Match(buffer[i]) > 0; i += outputMatch.MatchOffset())
@@ -162,7 +214,7 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			outputMatch.GetSubString(2, parameters, sizeof(parameters));
 			StripQuotes(parameters);
 			
-			info.numOutputs++;
+			entInfo.numOutputs++;
 			if (outputsList[0])
 			{
 				Format(outputsList, sizeof(outputsList), "%s\n%s\e%s", outputsList, output, parameters);
@@ -173,10 +225,10 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			}
 		}
 
-		if (info.numOutputs)
+		if (entInfo.numOutputs)
 		{
-			strcopy(info.outputsList, sizeof(EntityInfo::outputsList), outputsList);
-			g_Map_Outputs.SetArray(hammerId, info, sizeof(EntityInfo));
+			strcopy(entInfo.outputsList, sizeof(EntityInfo::outputsList), outputsList);
+			g_Map_Outputs.SetArray(hammerId, entInfo, sizeof(EntityInfo));
 		}
 		
 		delete outputMatch;
