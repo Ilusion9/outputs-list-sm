@@ -1,6 +1,6 @@
 #include <sourcemod>
 #include <regex>
-#include <output_info>
+
 #pragma newdecls required
 #pragma dynamic 1048576
 
@@ -9,27 +9,28 @@ public Plugin myinfo =
 	name = "Output Info",
 	author = "Ilusion9",
 	description = "Get entities outputs.",
-	version = "1.0",
+	version = "1.1",
 	url = "https://github.com/Ilusion9/"
 };
 
-enum
+enum struct OutputInfo
 {
-	Output = 0,
-	Target,
-	Input,
-	Parameters,
-	Delay,
-	Once
-};
+	char output[256];
+	char target[256];
+	char input[256];
+	char params[256];
+	float delay;
+	bool once;
+}
 
 enum struct EntityInfo
 {
 	int numOutputs;
-	char outputsList[4096];
+	int startIndex;
 }
 
 StringMap g_Map_Outputs;
+ArrayList g_List_Outputs;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -43,196 +44,200 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public int Native_GetHammerOutput(Handle plugin, int numParams)
 {
-	char hammerBuffer[128];
-	Format(hammerBuffer, sizeof(hammerBuffer), "%d", GetNativeCell(1));
+	// get hammer id as string
+	char hammerId[256];
+	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
-	EntityInfo entInfo;
-	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo))) // this entity has no outputs
+	// check if this entity has no outputs
+	EntityInfo entityInfo;
+	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return false;
 	}
 	
+	// check if the index received is valid
 	int index = GetNativeCell(2);
-	if (index < 0 || index >= entInfo.numOutputs) // invalid index received
+	if (index < 0 || index >= entityInfo.numOutputs)
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
 	}
 	
-	char[][] splitOutputs = new char[entInfo.numOutputs][256];
-	ExplodeString(entInfo.outputsList, "\n", splitOutputs, entInfo.numOutputs, 256);
+	// get output
+	OutputInfo outputInfo;
+	g_List_Outputs.GetArray(entityInfo.startIndex + index, outputInfo);
 	
-	char splitParameters[6][128];
-	ExplodeString(splitOutputs[index], "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
-	
-	if (!splitParameters[Target][0]) // no target
-	{
-		return false;
-	}
-	
-	SetNativeString(3, splitParameters[Output], GetNativeCell(4));
-	SetNativeString(5, splitParameters[Target], GetNativeCell(6));
-	SetNativeString(7, splitParameters[Input], GetNativeCell(8));
-	SetNativeString(9, splitParameters[Parameters], GetNativeCell(10));
-	SetNativeCellRef(11, StringToFloat(splitParameters[Delay]));
-	SetNativeCellRef(12, StringToInt(splitParameters[Once]) > 0);
+	// send output
+	SetNativeString(3, outputInfo.output, GetNativeCell(4));
+	SetNativeString(5, outputInfo.target, GetNativeCell(6));
+	SetNativeString(7, outputInfo.input, GetNativeCell(8));
+	SetNativeString(9, outputInfo.params, GetNativeCell(10));
+	SetNativeCellRef(11, outputInfo.delay);
+	SetNativeCellRef(12, outputInfo.once);
 	
 	return true;
 }
 
 public int Native_GetEntityOutput(Handle plugin, int numParams)
 {
+	// check if this entity is valid
 	int entity = GetNativeCell(1);
 	if (!IsValidEntity(entity))
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
-		
-	char hammerBuffer[128];
-	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
-	Format(hammerBuffer, sizeof(hammerBuffer), "%d", hammerId);
 	
-	EntityInfo entInfo;
-	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo))) // this entity has no outputs
+	// get entity hammer id as string
+	char hammerId[256];
+	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
+	
+	// check if this entity has no outputs
+	EntityInfo entityInfo;
+	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return false;
 	}
 	
+	// check if the index received is valid
 	int index = GetNativeCell(2);
-	if (index < 0 || index >= entInfo.numOutputs) // invalid index received
+	if (index < 0 || index >= entityInfo.numOutputs)
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
 	}
 	
-	char[][] splitOutputs = new char[entInfo.numOutputs][256];
-	ExplodeString(entInfo.outputsList, "\n", splitOutputs, entInfo.numOutputs, 256);
+	// get output
+	OutputInfo outputInfo;
+	g_List_Outputs.GetArray(entityInfo.startIndex + index, outputInfo);
 	
-	char splitParameters[6][128];
-	ExplodeString(splitOutputs[index], "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
-	
-	if (!splitParameters[Target][0]) // no target
-	{
-		return false;
-	}
-	
-	SetNativeString(3, splitParameters[Output], GetNativeCell(4));
-	SetNativeString(5, splitParameters[Target], GetNativeCell(6));
-	SetNativeString(7, splitParameters[Input], GetNativeCell(8));
-	SetNativeString(9, splitParameters[Parameters], GetNativeCell(10));
-	SetNativeCellRef(11, StringToFloat(splitParameters[Delay]));
-	SetNativeCellRef(12, StringToInt(splitParameters[Once]) > 0);
+	// send output
+	SetNativeString(3, outputInfo.output, GetNativeCell(4));
+	SetNativeString(5, outputInfo.target, GetNativeCell(6));
+	SetNativeString(7, outputInfo.input, GetNativeCell(8));
+	SetNativeString(9, outputInfo.params, GetNativeCell(10));
+	SetNativeCellRef(11, outputInfo.delay);
+	SetNativeCellRef(12, outputInfo.once);
 	
 	return true;
 }
 
 public int Native_GetHammerOutputsCount(Handle plugin, int numParams)
 {
-	char hammerBuffer[128];
-	Format(hammerBuffer, sizeof(hammerBuffer), "%d", GetNativeCell(1));
+	// get hammer id as string
+	char hammerId[256];
+	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
-	EntityInfo entInfo;
-	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo)))
+	// check if this entity has no outputs
+	EntityInfo entityInfo;
+	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return 0;
 	}
 	
-	return entInfo.numOutputs;
+	// return outputs count
+	return entityInfo.numOutputs;
 }
 
 public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 {
+	// check if this entity is valid
 	int entity = GetNativeCell(1);
 	if (!IsValidEntity(entity))
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
-		
-	char hammerBuffer[128];
-	int hammerId = GetEntProp(entity, Prop_Data, "m_iHammerID");
-	Format(hammerBuffer, sizeof(hammerBuffer), "%d", hammerId);
 	
-	EntityInfo entInfo;
-	if (!g_Map_Outputs.GetArray(hammerBuffer, entInfo, sizeof(EntityInfo)))
+	// get hammer id as string
+	char hammerId[256];
+	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
+	
+	// check if this entity has no outputs
+	EntityInfo entityInfo;
+	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return 0;
 	}
 	
-	return entInfo.numOutputs;
+	// return outputs count
+	return entityInfo.numOutputs;
 }
 
 public void OnPluginStart()
 {
+	g_List_Outputs = new ArrayList(sizeof(OutputInfo));
 	g_Map_Outputs = new StringMap();
 }
 
 public void OnMapEnd()
 {
+	g_List_Outputs.Clear();
 	g_Map_Outputs.Clear();
 }
 
 public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 {
+	g_List_Outputs.Clear();
 	g_Map_Outputs.Clear();
-	char hammerId[128];
+	
+	char hammer[256];
+	char output[256];
+	char parameters[1024];
+	EntityInfo entityInfo;
+	OutputInfo outputInfo;
+	Regex regexHammer = new Regex("(\"hammerid\") (\"[0-9]+\")");
+	Regex regexOutput = new Regex("(\"On[A-Z]\\w*\") (\"[^\"]+\")");
 	
 	for (int current = 0, next = 0; (next = FindNextKeyChar(mapEntities[current], '}')) != -1; current += next)
 	{
+		// get entity keyvalues
 		char[] buffer = new char[next + 1];
 		strcopy(buffer, next, mapEntities[current]);
 		
-		int pos = StrContains(buffer, "\"hammerid\" \"");
-		if (pos == -1)
+		// get hammerid
+		if (regexHammer.Match(buffer) < 1)
 		{
 			continue;
 		}
 		
-		// get hammer id
-		pos += 12;
-		int end = FindCharInString(buffer[pos], '"');
-		if (end != -1)
-		{
-			strcopy(hammerId, end + 1, buffer[pos]);
-		}
+		regexHammer.GetSubString(2, hammer, sizeof(hammer));
+		StripQuotes(hammer);
+		entityInfo.numOutputs = 0;
 		
 		// get outputs
-		char output[512];
-		char parameters[512];
-		char outputsList[sizeof(EntityInfo::outputsList)];
-		EntityInfo entInfo;
-		
-		Regex outputMatch = new Regex("(\"On\\w*\") (\"[^\"]+\")");
-		for (int i = pos + end + 1; outputMatch.Match(buffer[i]) > 0; i += outputMatch.MatchOffset())
+		for (int i = 0; regexOutput.Match(buffer[i]) > 0; i += regexOutput.MatchOffset())
 		{
-			outputMatch.GetSubString(1, output, sizeof(output));
+			// get output name
+			regexOutput.GetSubString(1, output, sizeof(output));
 			StripQuotes(output);
 			
-			// output validation
-			if (CharToUpper(output[2]) != output[2])
-			{
-				continue;
-			}
-			
-			outputMatch.GetSubString(2, parameters, sizeof(parameters));
+			// get other params
+			regexOutput.GetSubString(2, parameters, sizeof(parameters));
 			StripQuotes(parameters);
 			
-			entInfo.numOutputs++;
-			if (outputsList[0])
-			{
-				Format(outputsList, sizeof(outputsList), "%s\n%s\e%s", outputsList, output, parameters);
-			}
-			else
-			{
-				Format(outputsList, sizeof(outputsList), "%s\e%s", output, parameters);
-			}
-		}
-
-		if (entInfo.numOutputs)
-		{
-			strcopy(entInfo.outputsList, sizeof(EntityInfo::outputsList), outputsList);
-			g_Map_Outputs.SetArray(hammerId, entInfo, sizeof(EntityInfo));
+			// split params
+			char splitParameters[5][256];
+			ExplodeString(parameters, "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
+			
+			// save output
+			Format(outputInfo.output, sizeof(OutputInfo::output), output);
+			Format(outputInfo.target, sizeof(OutputInfo::target), splitParameters[0]);
+			Format(outputInfo.input, sizeof(OutputInfo::input), splitParameters[1]);
+			Format(outputInfo.params, sizeof(OutputInfo::params), splitParameters[2]);
+			outputInfo.delay = StringToFloat(splitParameters[3]);
+			outputInfo.once = StringToInt(splitParameters[4]) > 0;
+			
+			g_List_Outputs.PushArray(outputInfo);
+			entityInfo.numOutputs++;
 		}
 		
-		delete outputMatch;
+		// save entity info
+		if (entityInfo.numOutputs)
+		{
+			entityInfo.startIndex = g_List_Outputs.Length - entityInfo.numOutputs;
+			g_Map_Outputs.SetArray(hammer, entityInfo, sizeof(entityInfo));
+		}
 	}
+	
+	delete regexHammer;
+	delete regexOutput;
 }
 
 int FindNextKeyChar(const char[] input, char key)
