@@ -34,39 +34,36 @@ ArrayList g_List_Outputs;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("GetHammerOutput", Native_GetHammerOutput);
+	CreateNative("GetHammerIdOutput", Native_GetHammerIdOutput);
 	CreateNative("GetEntityOutput", Native_GetEntityOutput);
-	CreateNative("GetHammerOutputsCount", Native_GetHammerOutputsCount);
+	CreateNative("GetHammerIdOutputsCount", Native_GetHammerIdOutputsCount);
 	CreateNative("GetEntityOutputsCount", Native_GetEntityOutputsCount);
 
 	RegPluginLibrary("output_info");
 }
 
-public int Native_GetHammerOutput(Handle plugin, int numParams)
+public int Native_GetHammerIdOutput(Handle plugin, int numParams)
 {
-	// get hammer id as string
 	char hammerId[256];
 	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
-	// check if this entity has no outputs
+	// no outputs
 	EntityInfo entityInfo;
 	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return false;
 	}
 	
-	// check if the index received is valid
-	int index = GetNativeCell(2);
-	if (index < 0 || index >= entityInfo.numOutputs)
+	int outputIndex = GetNativeCell(2);
+	if (outputIndex < 0 || outputIndex >= entityInfo.numOutputs)
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", outputIndex);
 	}
 	
-	// get output
 	OutputInfo outputInfo;
-	g_List_Outputs.GetArray(entityInfo.startIndex + index, outputInfo);
+	g_List_Outputs.GetArray(entityInfo.startIndex + outputIndex, outputInfo);
 	
-	// send output
+	// send output info
 	SetNativeString(3, outputInfo.output, GetNativeCell(4));
 	SetNativeString(5, outputInfo.target, GetNativeCell(6));
 	SetNativeString(7, outputInfo.input, GetNativeCell(8));
@@ -79,36 +76,32 @@ public int Native_GetHammerOutput(Handle plugin, int numParams)
 
 public int Native_GetEntityOutput(Handle plugin, int numParams)
 {
-	// check if this entity is valid
 	int entity = GetNativeCell(1);
 	if (!IsValidEntity(entity))
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
 	
-	// get entity hammer id as string
 	char hammerId[256];
 	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
 	
-	// check if this entity has no outputs
+	// no outputs
 	EntityInfo entityInfo;
 	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return false;
 	}
 	
-	// check if the index received is valid
-	int index = GetNativeCell(2);
-	if (index < 0 || index >= entityInfo.numOutputs)
+	int outputIndex = GetNativeCell(2);
+	if (outputIndex < 0 || outputIndex >= entityInfo.numOutputs)
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", index);
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid output index %d", outputIndex);
 	}
 	
-	// get output
 	OutputInfo outputInfo;
-	g_List_Outputs.GetArray(entityInfo.startIndex + index, outputInfo);
+	g_List_Outputs.GetArray(entityInfo.startIndex + outputIndex, outputInfo);
 	
-	// send output
+	// send output info
 	SetNativeString(3, outputInfo.output, GetNativeCell(4));
 	SetNativeString(5, outputInfo.target, GetNativeCell(6));
 	SetNativeString(7, outputInfo.input, GetNativeCell(8));
@@ -119,44 +112,39 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 	return true;
 }
 
-public int Native_GetHammerOutputsCount(Handle plugin, int numParams)
+public int Native_GetHammerIdOutputsCount(Handle plugin, int numParams)
 {
-	// get hammer id as string
 	char hammerId[256];
 	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
-	// check if this entity has no outputs
+	// no outputs
 	EntityInfo entityInfo;
 	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return 0;
 	}
 	
-	// return outputs count
 	return entityInfo.numOutputs;
 }
 
 public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 {
-	// check if this entity is valid
 	int entity = GetNativeCell(1);
 	if (!IsValidEntity(entity))
 	{
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
 	
-	// get hammer id as string
 	char hammerId[256];
 	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
 	
-	// check if this entity has no outputs
+	// no outputs
 	EntityInfo entityInfo;
 	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
 	{
 		return 0;
 	}
 	
-	// return outputs count
 	return entityInfo.numOutputs;
 }
 
@@ -208,15 +196,13 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			regexOutput.GetSubString(1, output, sizeof(output));
 			StripQuotes(output);
 			
-			// get other params
+			// get output params
 			regexOutput.GetSubString(2, parameters, sizeof(parameters));
 			StripQuotes(parameters);
 			
-			// split params
 			char splitParameters[5][256];
 			ExplodeString(parameters, "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
 			
-			// save output
 			Format(outputInfo.output, sizeof(OutputInfo::output), output);
 			Format(outputInfo.target, sizeof(OutputInfo::target), splitParameters[0]);
 			Format(outputInfo.input, sizeof(OutputInfo::input), splitParameters[1]);
@@ -228,7 +214,6 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			entityInfo.numOutputs++;
 		}
 		
-		// save entity info
 		if (entityInfo.numOutputs)
 		{
 			entityInfo.startIndex = g_List_Outputs.Length - entityInfo.numOutputs;
