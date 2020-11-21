@@ -20,7 +20,7 @@
  * @param once              True if the output has 'Only Once' flag enabled.
  * @return                  True if the output has been returned.
  */
-native bool GetHammerOutput(int hammerId, int index, char[] output, int outputlen, char[] target, int targetlen, char[] input, int inputlen, char[] params, int paramslen, float& delay, bool& once);
+native bool GetHammerIdOutput(int hammerId, int index, char[] output, int outputlen, char[] target, int targetlen, char[] input, int inputlen, char[] params, int paramslen, float& delay, bool& once);
 
 /**
  * Returns an output from an entity outputs list
@@ -47,7 +47,7 @@ native bool GetEntityOutput(int entity, int index, char[] output, int outputlen,
  * @param hammerId          Entity hammer id.
  * @return                  The entity outputs count.
  */
-native int GetHammerOutputsCount(int hammerId);
+native int GetHammerIdOutputsCount(int hammerId);
 
 /**
  * Returns the entity outputs count.
@@ -73,9 +73,9 @@ public SharedPlugin __pl_output_info_defined_ =
 #if !defined REQUIRE_PLUGIN
 public void __pl_output_info_SetNTVOptional()
 {
-	MarkNativeAsOptional("GetHammerOutput");
+	MarkNativeAsOptional("GetHammerIdOutput");
 	MarkNativeAsOptional("GetEntityOutput");
-	MarkNativeAsOptional("GetHammerOutputsCount");
+	MarkNativeAsOptional("GetHammerIdOutputsCount");
 	MarkNativeAsOptional("GetEntityOutputsCount");
 }
 #endif
