@@ -203,7 +203,7 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			StripQuotes(parameters);
 			
 			char splitParameters[5][256];
-			ExplodeString(parameters, g_EngineVersion != Engine_CSS ? "\e" : ",", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
+			ExplodeString(parameters, (g_EngineVersion != Engine_CSS) ? "\e" : ",", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
 			
 			Format(outputInfo.output, sizeof(OutputInfo::output), output);
 			Format(outputInfo.target, sizeof(OutputInfo::target), splitParameters[0]);
