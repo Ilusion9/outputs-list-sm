@@ -29,6 +29,7 @@ enum struct EntityInfo
 	int startIndex;
 }
 
+EngineVersion g_EngineVersion;
 StringMap g_Map_Outputs;
 ArrayList g_List_Outputs;
 
@@ -44,7 +45,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public int Native_GetHammerIdOutput(Handle plugin, int numParams)
 {
-	char hammerId[256];
+	char hammerId[128];
 	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
 	// no outputs
@@ -82,7 +83,7 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
 	
-	char hammerId[256];
+	char hammerId[128];
 	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
 	
 	// no outputs
@@ -114,7 +115,7 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 
 public int Native_GetHammerIdOutputsCount(Handle plugin, int numParams)
 {
-	char hammerId[256];
+	char hammerId[128];
 	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
 	// no outputs
@@ -135,7 +136,7 @@ public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
 	}
 	
-	char hammerId[256];
+	char hammerId[128];
 	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
 	
 	// no outputs
@@ -150,6 +151,7 @@ public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 
 public void OnPluginStart()
 {
+	g_EngineVersion = GetEngineVersion();
 	g_List_Outputs = new ArrayList(sizeof(OutputInfo));
 	g_Map_Outputs = new StringMap();
 }
@@ -165,7 +167,7 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 	g_List_Outputs.Clear();
 	g_Map_Outputs.Clear();
 	
-	char hammer[256];
+	char hammerId[128];
 	char output[256];
 	char parameters[1024];
 	EntityInfo entityInfo;
@@ -185,8 +187,8 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			continue;
 		}
 		
-		regexHammer.GetSubString(2, hammer, sizeof(hammer));
-		StripQuotes(hammer);
+		regexHammer.GetSubString(2, hammerId, sizeof(hammerId));
+		StripQuotes(hammerId);
 		entityInfo.numOutputs = 0;
 		
 		// get outputs
@@ -201,7 +203,7 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 			StripQuotes(parameters);
 			
 			char splitParameters[5][256];
-			ExplodeString(parameters, "\e", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
+			ExplodeString(parameters, g_EngineVersion != Engine_CSS ? "\e" : ",", splitParameters, sizeof(splitParameters), sizeof(splitParameters[]));
 			
 			Format(outputInfo.output, sizeof(OutputInfo::output), output);
 			Format(outputInfo.target, sizeof(OutputInfo::target), splitParameters[0]);
@@ -217,7 +219,7 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 		if (entityInfo.numOutputs)
 		{
 			entityInfo.startIndex = g_List_Outputs.Length - entityInfo.numOutputs;
-			g_Map_Outputs.SetArray(hammer, entityInfo, sizeof(entityInfo));
+			g_Map_Outputs.SetArray(hammerId, entityInfo, sizeof(entityInfo));
 		}
 	}
 	
