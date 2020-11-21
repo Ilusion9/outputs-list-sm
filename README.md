@@ -25,7 +25,7 @@ https://forums.alliedmods.net/showthread.php?t=327344
  * @param once              True if the output has 'Only Once' flag enabled.
  * @return                  True if the output has been returned.
  */
-native bool GetHammerOutput(int hammerId, int index, char[] output, int outputlen, char[] target, int targetlen, char[] input, int inputlen, char[] params, int paramslen, float& delay, bool& once);
+native bool GetHammerIdOutput(int hammerId, int index, char[] output, int outputlen, char[] target, int targetlen, char[] input, int inputlen, char[] params, int paramslen, float& delay, bool& once);
 
 /**
  * Returns an output from an entity outputs list
@@ -52,7 +52,7 @@ native bool GetEntityOutput(int entity, int index, char[] output, int outputlen,
  * @param hammerId          Entity hammer id.
  * @return                  The entity outputs count.
  */
-native int GetHammerOutputsCount(int hammerId);
+native int GetHammerIdOutputsCount(int hammerId);
 
 /**
  * Returns the entity outputs count.
@@ -94,10 +94,10 @@ char inputName[256];
 char params[256];
 float inputDelay;
   
-for (int i = 0; i < GetEntityOutputsCount(hammerId); i++)
+for (int i = 0; i < GetHammerIdOutputsCount(hammerId); i++)
 {		
 	// get output
-	if (!GetEntityOutput(hammerId, i, outputName, sizeof(outputName), targetName, sizeof(targetName), inputName, sizeof(inputName), params, sizeof(params), inputDelay, inputOnce))
+	if (!GetHammerIdOutput(hammerId, i, outputName, sizeof(outputName), targetName, sizeof(targetName), inputName, sizeof(inputName), params, sizeof(params), inputDelay, inputOnce))
 	{
 		continue;
 	}
