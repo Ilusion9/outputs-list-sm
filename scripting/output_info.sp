@@ -35,18 +35,25 @@ ArrayList g_List_Outputs;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("GetHammerIdOutput", Native_GetHammerIdOutput);
 	CreateNative("GetEntityOutput", Native_GetEntityOutput);
-	CreateNative("GetHammerIdOutputsCount", Native_GetHammerIdOutputsCount);
 	CreateNative("GetEntityOutputsCount", Native_GetEntityOutputsCount);
-
+	
+	CreateNative("GetHammerIdOutput", Native_GetHammerIdOutput);
+	CreateNative("GetHammerIdOutputsCount", Native_GetHammerIdOutputsCount);
+	
 	RegPluginLibrary("output_info");
 }
 
-public int Native_GetHammerIdOutput(Handle plugin, int numParams)
+public int Native_GetEntityOutput(Handle plugin, int numParams)
 {
+	int entity = GetNativeCell(1);
+	if (!IsValidEntity(entity))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
+	}
+	
 	char hammerId[128];
-	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
+	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
 	
 	// no outputs
 	EntityInfo entityInfo;
@@ -75,7 +82,7 @@ public int Native_GetHammerIdOutput(Handle plugin, int numParams)
 	return true;
 }
 
-public int Native_GetEntityOutput(Handle plugin, int numParams)
+public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
 {
 	int entity = GetNativeCell(1);
 	if (!IsValidEntity(entity))
@@ -85,6 +92,21 @@ public int Native_GetEntityOutput(Handle plugin, int numParams)
 	
 	char hammerId[128];
 	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
+	
+	// no outputs
+	EntityInfo entityInfo;
+	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
+	{
+		return 0;
+	}
+	
+	return entityInfo.numOutputs;
+}
+
+public int Native_GetHammerIdOutput(Handle plugin, int numParams)
+{
+	char hammerId[128];
+	Format(hammerId, sizeof(hammerId), "%d", GetNativeCell(1));
 	
 	// no outputs
 	EntityInfo entityInfo;
@@ -128,27 +150,6 @@ public int Native_GetHammerIdOutputsCount(Handle plugin, int numParams)
 	return entityInfo.numOutputs;
 }
 
-public int Native_GetEntityOutputsCount(Handle plugin, int numParams)
-{
-	int entity = GetNativeCell(1);
-	if (!IsValidEntity(entity))
-	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", entity);
-	}
-	
-	char hammerId[128];
-	Format(hammerId, sizeof(hammerId), "%d", GetEntProp(entity, Prop_Data, "m_iHammerID"));
-	
-	// no outputs
-	EntityInfo entityInfo;
-	if (!g_Map_Outputs.GetArray(hammerId, entityInfo, sizeof(EntityInfo)))
-	{
-		return 0;
-	}
-	
-	return entityInfo.numOutputs;
-}
-
 public void OnPluginStart()
 {
 	g_EngineVersion = GetEngineVersion();
@@ -172,34 +173,34 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 	char parameters[1024];
 	EntityInfo entityInfo;
 	OutputInfo outputInfo;
-	Regex regexHammer = new Regex("(\"hammerid\") (\"[0-9]+\")");
-	Regex regexOutput = new Regex("(\"On[A-Z]\\w*\") (\"[^\"]+\")");
+	Regex hammerExp = new Regex("(\"hammerid\") (\"[0-9]+\")");
+	Regex outputExp = new Regex("(\"On[A-Z]\\w*\") (\"[^\"]+\")");
 	
-	for (int current = 0, next = 0; (next = FindNextKeyChar(mapEntities[current], '}')) != -1; current += next)
+	for (int current = 0, next = 0; (next = FindCharInString(mapEntities[current], '}')) != -1; current += next + 2)
 	{
 		// get entity keyvalues
 		char[] buffer = new char[next + 1];
-		strcopy(buffer, next, mapEntities[current]);
+		strcopy(buffer, next + 1, mapEntities[current]);
 		
 		// get hammerid
-		if (regexHammer.Match(buffer) < 1)
+		if (hammerExp.Match(buffer) < 1)
 		{
 			continue;
 		}
 		
-		regexHammer.GetSubString(2, hammerId, sizeof(hammerId));
+		hammerExp.GetSubString(2, hammerId, sizeof(hammerId));
 		StripQuotes(hammerId);
 		entityInfo.numOutputs = 0;
 		
 		// get outputs
-		for (int i = 0; regexOutput.Match(buffer[i]) > 0; i += regexOutput.MatchOffset())
+		for (int i = 0; outputExp.Match(buffer[i]) > 0; i += outputExp.MatchOffset())
 		{
 			// get output name
-			regexOutput.GetSubString(1, output, sizeof(output));
+			outputExp.GetSubString(1, output, sizeof(output));
 			StripQuotes(output);
 			
 			// get output params
-			regexOutput.GetSubString(2, parameters, sizeof(parameters));
+			outputExp.GetSubString(2, parameters, sizeof(parameters));
 			StripQuotes(parameters);
 			
 			char splitParameters[5][256];
@@ -223,22 +224,6 @@ public Action OnLevelInit(const char[] mapName, char mapEntities[2097152])
 		}
 	}
 	
-	delete regexHammer;
-	delete regexOutput;
-}
-
-int FindNextKeyChar(const char[] input, char key)
-{
-	int i;
-	while (input[i] != key && input[i] != 0)
-	{
-		++i;
-	}
-
-	if (!input[i])
-	{
-		return -1;
-	}
-	
-	return i + 2;
+	delete hammerExp;
+	delete outputExp;
 }
